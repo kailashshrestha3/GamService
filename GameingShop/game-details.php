@@ -1,37 +1,38 @@
 <?php
+session_start(); 
 include 'connection.php';
+
+
 
 // Handle form submission for purchase
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Check if the user is logged in when trying to make a purchase
     if (!isset($_SESSION['user_id'])) {
-        // If not logged in, redirect to login page
         header("Location: login.php");
         exit();
-    }
-
-    $player_id = mysqli_real_escape_string($conn, $_POST['player_id']);
-    $top_up_amount = mysqli_real_escape_string($conn, $_POST['top_up_amount']);
-    $credit_type = mysqli_real_escape_string($conn, $_POST['credit_type']);
-    $game_id = mysqli_real_escape_string($conn, $_GET['id']);
-    $payment_method = mysqli_real_escape_string($conn, $_POST['payment_method']);
-
-    // Check if player exists based on player_id only
-    $player_check = "SELECT * FROM players WHERE player_id = '$player_id'";
-    $player_result = mysqli_query($conn, $player_check);
-    echo $player_id;
-    if(mysqli_num_rows($player_result) > 0) {
-        // Proceed with the transaction
-        $sql = "INSERT INTO transactions (game_id, player_id, credit_type, amount, payment_method, transaction_date) 
-                VALUES ('$game_id', '$player_id', '$credit_type', '$top_up_amount', '$payment_method', NOW())";
-        
-        if (mysqli_query($conn, $sql)) {
-            $success_message = "Purchase successful! Your top-up of $credit_type $top_up_amount has been processed.";
-        } else {
-            $error_message = "Error processing purchase: " . mysqli_error($conn);
-        }
     } else {
-        $error_message = "Player ID not found!";
+         // Validate Player ID first (ADD THIS PART)
+         $player_id = $_POST['player_id'];
+         if (!preg_match('/^[0-9]{1,6}$/', $player_id)) {
+             die("Invalid Player ID - must be 1-6 digits");
+         }
+
+        // Get form inputs
+        $user_id = $_SESSION['user_id'];
+        $game_id = mysqli_real_escape_string($conn, $_GET['id']); // Game ID from URL
+        $player_id = mysqli_real_escape_string($conn, $_POST['player_id']);
+        $credit_type = mysqli_real_escape_string($conn, $_POST['credit_type']);
+        $top_up_amount = mysqli_real_escape_string($conn, $_POST['top_up_amount']);
+        $payment_method = mysqli_real_escape_string($conn, $_POST['payment_method']);
+
+        // Insert into purchases table
+        $insert_sql = "INSERT INTO purchases (user_id, game_id, player_id, credit_type, amount, payment_method, purchase_date)
+                       VALUES ('$user_id', '$game_id', '$player_id', '$credit_type', '$top_up_amount', '$payment_method', NOW())";
+
+        if (mysqli_query($conn, $insert_sql)) {
+            $success_message = "Purchase successful!";
+        } else {
+            $error_message = "Failed to process your purchase. Error: " . mysqli_error($conn);
+        }
     }
 }
 
@@ -69,9 +70,8 @@ if (isset($_GET['id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo "Kailash" ?> - Details</title>
+    <title><?php echo $game['name'] ?? 'Game'; ?> - Purchase</title>
     <style>
-        /* Add your CSS here */
         * {
             margin: 0;
             padding: 0;
@@ -81,6 +81,7 @@ if (isset($_GET['id'])) {
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
+            background-color: #f4f4f4;
         }
 
         .navbar {
@@ -297,9 +298,112 @@ if (isset($_GET['id'])) {
             margin-bottom: 15px;
         }
 
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #1f2c3a;
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 400px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0,0,0,0.4);
+        }
+
+        .modal-content .checkmark {
+            font-size: 50px;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .modal-actions button:first-child {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .modal-actions button:last-child {
+            background-color: #ff8000;
+            color: white;
+        }
+
+        /* Payment Modal Specific Styles */
+        #paymentModal .modal-content {
+            width: 350px;
+        }
+
+        #paymentModal img {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            display: block;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #paymentModal h3 {
+            margin-bottom: 10px;
+            color: #fff;
+        }
+
+        #paymentModal ul {
+            margin: 10px 0 20px;
+            padding-left: 20px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        #paymentModal li {
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+
+        #paymentModal a {
+            color: #ff8000;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        #paymentModal .modal-actions button:last-child {
+            background-color: #28a745;
+        }
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
+            }
+            
+            .modal-content {
+                width: 90%;
             }
         }
     </style>
@@ -314,12 +418,19 @@ if (isset($_GET['id'])) {
             <a href="home.php">Home</a>
             <a href="shop.php">Shop</a>
             <a href="contact.php">Contact Us</a>
+            <?php if (isset($_SESSION['user_id'])): ?>
+                <a href="my-purchases.php">My Purchases</a>
+            <?php endif; ?>
         </div>
-        <div class="nav-buttons">
-            <input type="text" placeholder="Search..." class="search-input">
-            <button class="login-btn"><a href="login.php">Login</a></button>
-            <button class="register-btn"><a href="signup.php">SignUp</a></button>
-        </div>
+
+        <?php if (isset($_SESSION['user_id'])): ?>
+    <span style="color:white; font-weight: bold;">Welcome!</span>
+    <button class="login-btn"><a href="logout.php">Logout</a></button>
+<?php else: ?>
+    <button class="login-btn"><a href="login.php">Login</a></button>
+    <button class="register-btn"><a href="signup.php">SignUp</a></button>
+<?php endif; ?>
+
     </nav>
 
     <div class="container">
@@ -339,17 +450,24 @@ if (isset($_GET['id'])) {
                 <div class="error"><?php echo $error_message; ?></div>
             <?php endif; ?>
 
-            <form method="POST">
-                <label for="player_id">Enter your Player ID:</label>
-                <input type="text" id="player_id" name="player_id" required>
+            <form method="POST" id="purchaseForm" onsubmit="event.preventDefault(); showConfirmation();">
+                  <label for="player_id">Player ID (6 digits max):</label>
+        <input type="text" 
+               id="player_id" 
+               name="player_id" 
+               value="<?php echo isset($_POST['player_id']) ? htmlspecialchars($_POST['player_id']) : ''; ?>"
+               maxlength="6"
+               pattern="[0-9]{1,6}"
+               title="Numbers only (1-6 digits)"
+               required>
 
                 <label for="top_up_amount">Top-up Amount:</label>
                 <div class="topup-options">
                     <?php foreach ($topups as $topup): ?>
-                        <div class="topup-box" onclick="selectTopUp('<?php echo $topup['credit_type']; ?>', <?php echo $topup['amount']; ?>)">
+<div class="topup-box" onclick="selectTopUp('<?php echo $topup['credit_type']; ?>', <?php echo $topup['amount']; ?>, this)">
                             <div class="topup-details">
                                 <span class="topup-name"><?php echo $topup['credit_type']; ?></span>
-                                <span class="topup-amount">$<?php echo $topup['amount']; ?></span>
+                                <span class="topup-amount">Rs. <?php echo $topup['amount']; ?></span>
                             </div>
                             <img src="<?php echo $game['credit_icon']; ?>" alt="Credit" class="topup-icon">
                         </div>
@@ -360,9 +478,8 @@ if (isset($_GET['id'])) {
 
                 <label for="payment_method">Select Payment Method:</label>
                 <select id="payment_method" name="payment_method" required>
-                    <option value="Credit Card">Credit Card</option>
-                    <option value="PayPal">PayPal</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Esewa">Esewa</option>
+                    <option value="Khalti">Khalti</option>
                 </select>
 
                 <button type="submit">Buy Now</button>
@@ -370,14 +487,97 @@ if (isset($_GET['id'])) {
         </div>
     </div>
 
+    <!-- Order Confirmation Modal -->
+    <div id="orderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="checkmark">&#10004;</div>
+            <h2>Place Order</h2>
+            <p><strong>Player Id</strong>: <span id="confirmPlayerId"></span></p>
+            <p><strong>Item</strong>: <span id="confirmCreditType"></span></p>
+            <p><strong>Price</strong>: Rs <span id="confirmAmount"></span></p>
+            <p><strong>Payment</strong>: <span id="confirmPayment"></span></p>
+            <div class="modal-actions">
+                <button onclick="closeModal()">Cancel</button>
+                <button onclick="submitPurchase()">Pay Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment QR Code Modal -->
+    <div id="paymentModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Scan to Pay</h2>
+            <div style="margin: 20px 0; text-align: center;">
+                <!-- Replace with your actual QR code image -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PaymentForGame_<?php echo $game['name']; ?>" alt="Payment QR Code">
+            </div>
+            <div style="text-align: left; margin-bottom: 20px;">
+                <h3>Payment Instructions</h3>
+                <ul>
+                    <li>Make sure your website registered phone number and payment phone number must be same.</li>
+                    <li>Open your preferred mobile payment app.</li>
+                    <li>Scan the QR code shown above.</li>
+                    <li>Confirm and complete the payment.</li>
+                    <li>Payment will be automatically detected.</li>
+                    <li>Please wait on this page until payment is complete.</li>
+                </ul>
+            </div>
+            <div style="margin-top: 15px;">
+                <a href="#" style="color: #ff8000; text-decoration: none;">Download QR Code</a>
+            </div>
+            <div class="modal-actions">
+                <button onclick="closePaymentModal()">Cancel Payment</button>
+                <button style="background-color: #28a745;" onclick="paymentComplete()">Payment Done</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        function selectTopUp(creditType, amount) {
-            document.getElementById('top_up_amount').value = amount;
-            document.getElementById('credit_type').value = creditType;
-            const allBoxes = document.querySelectorAll('.topup-box');
-            allBoxes.forEach(box => box.style.border = '1px solid #ccc');
-            event.currentTarget.style.border = '2px solid #007bff';
-        }
+      function selectTopUp(creditType, amount, el) {
+    document.getElementById('top_up_amount').value = amount;
+    document.getElementById('credit_type').value = creditType;
+
+    const allBoxes = document.querySelectorAll('.topup-box');
+    allBoxes.forEach(box => box.style.border = '1px solid #ccc');
+    el.style.border = '2px solid #007bff';
+}
+
+function showConfirmation() {
+    const amount = document.getElementById('top_up_amount').value;
+    const creditType = document.getElementById('credit_type').value;
+    const paymentMethod = document.getElementById('payment_method').value;
+    const playerId = document.getElementById('player_id').value;
+
+    if (!amount || !creditType || !paymentMethod || !playerId) {
+        alert("Please select all required fields.");
+        return;
+    }
+
+    document.getElementById('confirmAmount').innerText = amount;
+    document.getElementById('confirmCreditType').innerText = creditType;
+    document.getElementById('confirmPayment').innerText = paymentMethod;
+    document.getElementById('confirmPlayerId').innerText = playerId;
+
+    document.getElementById('orderModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('orderModal').style.display = 'none';
+}
+
+function submitPurchase() {
+    document.getElementById('orderModal').style.display = 'none';
+    document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').style.display = 'none';
+}
+
+function paymentComplete() {
+    document.getElementById("purchaseForm").submit();
+}
+
     </script>
 </body>
 </html>

@@ -16,11 +16,11 @@ if (isset($_POST['submit'])) {
         // Check if passwords match
         if ($password == $confirmpassword) {
             // Hash the password before storing it
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+           // Skip hashing, store plain text password (NOT RECOMMENDED for real projects)
+$plainPassword = $password;
 
-            // Corrected query with prepared statements for security
-            $stmt = mysqli_prepare($conn, "INSERT INTO signup (name, username, email, password) VALUES (?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, "ssss", $name, $username, $email, $hashedPassword);
+$stmt = mysqli_prepare($conn, "INSERT INTO signup (name, username, email, password) VALUES (?, ?, ?, ?)");
+mysqli_stmt_bind_param($stmt, "ssss", $name, $username, $email, $plainPassword);
             $execute = mysqli_stmt_execute($stmt);
 
             // Execute the query and check for success

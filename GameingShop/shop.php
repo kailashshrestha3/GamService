@@ -129,6 +129,9 @@ $result = mysqli_query($conn, $sql);
             <a href="home.php">Home</a>
             <a href="shop.php">Shop</a>
             <a href="contact.php">Contact Us</a>
+            <?php if (isset($_SESSION['user_id'])): ?>
+        <a href="my-purchases.php">My Purchases</a>
+    <?php endif; ?>
         </div>
         <div class="nav-buttons">
             <input type="text" placeholder="Search..." class="search-input" id="searchInput">

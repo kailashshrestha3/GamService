@@ -180,6 +180,7 @@ if (!$result_trending) {
 
     .game-card img {
         width: 100%;
+
         /* height: 100%; */
     }
 
@@ -189,22 +190,29 @@ if (!$result_trending) {
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <h3>Gaming Shop</h3>
-        </div>
-        <div class="nav-links">
-            <a href="home.php">Home</a>
-            <a href="shop.php">Shop</a>
-            <a href="contact.php">Contact Us</a>
-        </div>
-        <div class="nav-buttons">
-            <input type="text" placeholder="Search..." class="search-input" id="searchInput">
-            <div class="search-results" id="searchResults"></div>
+<nav class="navbar">
+    <div class="logo">
+        <h3>Gaming Shop</h3>
+    </div>
+    <div class="nav-links">
+        <a href="home.php">Home</a>
+        <a href="shop.php">Shop</a>
+        <a href="contact.php">Contact Us</a>
+        <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="my-purchases.php">My Purchases</a>
+        <?php endif; ?>
+    </div>
+    <div class="nav-buttons">
+        <input type="text" placeholder="Search..." class="search-input" id="searchInput">
+        <div class="search-results" id="searchResults"></div>
+        <?php if (!isset($_SESSION['user_id'])): ?> <!-- Check if user is not logged in -->
             <button class="login-btn"><a href="login.php">Login</a></button>
             <button class="register-btn"><a href="signup.php">SignUp</a></button>
-        </div>
-    </nav>
+        <?php else: ?> <!-- If user is logged in -->
+            <button class="logout-btn"><a href="logout.php">Logout</a></button> <!-- Add a logout button -->
+        <?php endif; ?>
+    </div>
+</nav>
 
     <!-- Trending Games Slider Section -->
     <div class="trending-section">

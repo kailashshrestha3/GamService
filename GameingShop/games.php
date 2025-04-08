@@ -132,6 +132,8 @@ $result = mysqli_query($conn, $query);
         <h2>Dashboard</h2>
         <a href="admin.php">Add New Game</a>
         <a href="games.php">Show Games</a>
+        <a href="manage-user.php">Manage User</a>
+
         <a href="login.php">Logout</a>
     </div>
     <div class="container">
